@@ -16,7 +16,6 @@
           {
             "group": "Get Started",
             "pages": [
-              "about",
               "introduction",
               "quickstart",
               "development"
@@ -59,22 +58,22 @@
     "global": {
       "anchors": [
         {
-          "anchor": "About Methods Center",
+          "anchor": "About",
           "href": "https://uni-tuebingen.de/en/faculties/faculty-of-economics-and-social-sciences/subjects/department-of-social-sciences/methods-center/institute/",
-          "icon": "website"
+          "icon": "book-open-cover"
         },
         {
-          "anchor": "Student Dropout - Web",
+          "anchor": "Research",
           "href": "https://mintlify.com/docs",
           "icon": "book-open-cover"
         },
         {
-          "anchor": "Methods Center Modelling API",
+          "anchor": "Public API",
           "href": "https://mintlify.com/docs",
-          "icon": "book-open-cover"
+          "icon": "sqaure-terminal"
         },
         {
-          "anchor": "Community",
+          "anchor": "Contact",
           "href": "https://discord.gg",
           "icon": "discord"
         }
