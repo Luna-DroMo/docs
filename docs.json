@@ -58,19 +58,14 @@
     "global": {
       "anchors": [
         {
-          "anchor": "About",
-          "href": "https://uni-tuebingen.de/en/faculties/faculty-of-economics-and-social-sciences/subjects/department-of-social-sciences/methods-center/institute/",
-          "icon": "book-open-cover"
-        },
-        {
           "anchor": "Research",
           "href": "https://mintlify.com/docs",
           "icon": "book-open-cover"
         },
         {
-          "anchor": "Public API",
+          "anchor": "API Reference",
           "href": "https://mintlify.com/docs",
-          "icon": "sqaure-terminal"
+          "icon": "terminal"
         },
         {
           "anchor": "Contact",
