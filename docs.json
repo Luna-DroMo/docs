@@ -97,5 +97,8 @@
       "website": "https://uni-tuebingen.de/en/faculties/faculty-of-economics-and-social-sciences/subjects/department-of-social-sciences/methods-center/institute/",
       "discord": "https://discord.gg"
     }
-  }
+  },
+  "modeToggle": {
+  "default": "light"
+}
 }
