@@ -1,13 +1,13 @@
 {
   "$schema": "https://mintlify.com/docs.json",
-  "theme": "mint",
-  "name": "Mint Starter Kit",
+  "theme": "maple",
+  "name": "Methods Center",
   "colors": {
-    "primary": "#16A34A",
-    "light": "#07C983",
-    "dark": "#15803D"
+    "primary": "#A51E37",
+    "light": "#D02645",
+    "dark": "#333333"
   },
-  "favicon": "/favicon.svg",
+  "favicon": "/favicon.ico",
   "navigation": {
     "tabs": [
       {
@@ -16,6 +16,7 @@
           {
             "group": "Get Started",
             "pages": [
+              "about",
               "introduction",
               "quickstart",
               "development"
@@ -35,7 +36,7 @@
         ]
       },
       {
-        "tab": "API Reference",
+        "tab": "Public API",
         "groups": [
           {
             "group": "API Documentation",
@@ -58,19 +59,24 @@
     "global": {
       "anchors": [
         {
-          "anchor": "Documentation",
+          "anchor": "About Methods Center",
+          "href": "https://uni-tuebingen.de/en/faculties/faculty-of-economics-and-social-sciences/subjects/department-of-social-sciences/methods-center/institute/",
+          "icon": "website"
+        },
+        {
+          "anchor": "Student Dropout - Web",
+          "href": "https://mintlify.com/docs",
+          "icon": "book-open-cover"
+        },
+        {
+          "anchor": "Methods Center Modelling API",
           "href": "https://mintlify.com/docs",
           "icon": "book-open-cover"
         },
         {
           "anchor": "Community",
-          "href": "https://mintlify.com/community",
-          "icon": "slack"
-        },
-        {
-          "anchor": "Blog",
-          "href": "https://mintlify.com/blog",
-          "icon": "newspaper"
+          "href": "https://discord.gg",
+          "icon": "discord"
         }
       ]
     }
@@ -83,20 +89,19 @@
     "links": [
       {
         "label": "Support",
-        "href": "mailto:hi@mintlify.com"
+        "href": "mailto:sekretariat@mz.uni-tuebingen.de"
       }
     ],
     "primary": {
       "type": "button",
-      "label": "Dashboard",
-      "href": "https://dashboard.mintlify.com"
+      "label": "Student Dropout Project",
+      "href": "https://luna-frontend-git-dev-dennis-perretts-projects.vercel.app/"
     }
   },
   "footer": {
     "socials": {
-      "x": "https://x.com/mintlify",
-      "github": "https://github.com/mintlify",
-      "linkedin": "https://linkedin.com/company/mintlify"
+      "website": "https://uni-tuebingen.de/en/faculties/faculty-of-economics-and-social-sciences/subjects/department-of-social-sciences/methods-center/institute/",
+      "discord": "https://discord.gg"
     }
   }
 }
