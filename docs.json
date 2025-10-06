@@ -8,28 +8,51 @@
         "dark": "#333333"
     },
     "favicon": "/favicon.ico",
+    "icons":{
+    "library":"lucide"
+    },
     "navigation": {
         "tabs": [
             {
                 "tab": "Guides",
                 "groups": [
                     {
-                        "group": "Get Started",
+                        "group": "Overview",
                         "pages": [
-                            "introduction",
-                            "quickstart",
-                            "development"
+                            "getting-started"
                         ]
                     },
                     {
-                        "group": "Essentials",
+                        "group": "Research",
                         "pages": [
-                            "essentials/markdown",
-                            "essentials/code",
-                            "essentials/images",
-                            "essentials/settings",
-                            "essentials/navigation",
-                            "essentials/reusable-snippets"
+                            "research/research-design",
+                            "research/statistical-model",
+                            "research/empirical-results-and-intervention",
+                            "research/future"
+                        ]
+                    },
+                    {
+                        "group": "Student Dropout Platform",
+                        "pages": [
+                            "web-platform/overview",
+                            "web-platform/installation",
+                            "web-platform/architecture",
+                            "web-platform/student-view",
+                            "web-platform/lecturer-view"
+                        ]
+                    },
+                    {
+                        "group": "Modelling API",
+                        "pages": [
+                            "modelling-api/overview",
+                            "modelling-api/models",
+                            "modelling-api/api.yaml"
+                        ]
+                    },
+                    {
+                        "group": "Contact",
+                        "pages": [
+                            "methods-center"
                         ]
                     }
                 ]
@@ -58,19 +81,29 @@
         "global": {
             "anchors": [
                 {
-                    "anchor": "Research",
-                    "href": "https://mintlify.com/docs",
-                    "icon": "book-open-cover"
+                    "anchor": "Overview",
+                    "href": "https://methodscenter.mintlify.app/getting-started",
+                    "icon": "book-open"
                 },
                 {
-                    "anchor": "API Reference",
-                    "href": "https://mintlify.com/docs",
-                    "icon": "terminal"
+                    "anchor": "Research",
+                    "href": "https://methodscenter.mintlify.app/research/overview",
+                    "icon": "flask-conical"
+                },
+                {
+                    "anchor": "Web Platform",
+                    "href": "https://methodscenter.mintlify.app/web-platform/overview",
+                    "icon": "app-window"
+                },
+                {
+                    "anchor": "Modelling API",
+                    "href": "https://methodscenter.mintlify.app/modelling-api/overview",
+                    "icon": "code"
                 },
                 {
                     "anchor": "Contact",
-                    "href": "https://discord.gg",
-                    "icon": "discord"
+                    "href": "mailto:sekretariat@mz.uni-tuebingen.de",
+                    "icon": "mail"
                 }
             ]
         }
@@ -82,13 +115,13 @@
     "navbar": {
         "links": [
             {
-                "label": "Support",
-                "href": "mailto:sekretariat@mz.uni-tuebingen.de"
+                "label": "Repositories",
+                "href": "https://github.com/orgs/Luna-DroMo/repositories"
             }
         ],
         "primary": {
             "type": "button",
-            "label": "Student Dropout Project",
+            "label": "Student Dropout Platform",
             "href": "https://luna-frontend-git-dev-dennis-perretts-projects.vercel.app/"
         }
     },

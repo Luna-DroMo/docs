@@ -1,0 +1,356 @@
+# Luna Modelling API
+
+## Overview
+
+Luna Modelling API is an advanced modelling and prediction service that provides sophisticated statistical filtering capabilities for time series data. The API specializes in Kalman filtering, enabling users to process noisy time series data and extract smooth, accurate estimates of underlying trends.
+
+## Architecture
+
+```
+┌─────────────┐
+│   Client    │
+└──────┬──────┘
+       │ API Key Authentication
+       ▼
+┌─────────────────────────────────────┐
+│        Luna Modelling API           │
+│  ┌──────────────────────────────┐   │
+│  │   FastAPI Application        │   │
+│  │  - CORS Middleware           │   │
+│  │  - API Key Verification      │   │
+│  │  - Quota Management          │   │
+│  └──────────────────────────────┘   │
+│              │                       │
+│    ┌─────────┼──────────┐            │
+│    ▼         ▼          ▼            │
+│  ┌────┐  ┌────────┐  ┌───────┐      │
+│  │Health│ │Kalman  │ │Account│      │
+│  │Route │ │Filter  │ │Route  │      │
+│  └────┘  └────┬───┘  └───────┘      │
+│               │                      │
+│               ▼                      │
+│    ┌─────────────────────┐          │
+│    │ Kalman Filter Engine│          │
+│    │ - Forward Pass      │          │
+│    │ - Smoothing Pass    │          │
+│    └─────────────────────┘          │
+└───────────────┬─────────────────────┘
+                │
+                ▼
+        ┌───────────────┐
+        │  PostgreSQL   │
+        │   Database    │
+        │ - Accounts    │
+        │ - Data Store  │
+        └───────────────┘
+```
+
+## Key Concepts
+
+### Account System
+
+The API uses an account-based authentication and authorization system. Each account has the following attributes:
+
+- **Account Name**: A unique identifier for the account
+- **API Key**: A UUID-based key used for authentication (passed in the `X-API-Key` header)
+- **Quota**: The number of API calls remaining for the account
+
+Accounts are authenticated via API key on every request, and the quota is automatically decremented with each successful API call.
+
+### Quota Management
+
+Quota is a critical concept in the Luna Modelling API:
+
+- Each account has a finite quota of API calls
+- Every successful request to processing endpoints (e.g., Kalman filter) consumes 1 quota unit
+- The quota check is performed atomically before processing to prevent race conditions
+- When quota reaches 0, the API returns a `403 Forbidden` error
+- The `/account/quota` endpoint allows users to check their remaining quota without consuming it
+
+### Kalman Filtering
+
+The core functionality of the API is Kalman filtering for time series data:
+
+- **Input**: Multi-dimensional time series data as nested arrays
+- **Processing**:
+  - Forward pass: Predicts and corrects state estimates
+  - Smoothing pass: Refines estimates using all available data
+- **Output**:
+  - Filtered data (predictions)
+  - Raw state estimates
+  - Smoothed state estimates
+
+**Optional Data Persistence**: When the `save` parameter is set to `true`, the API stores the input data with a unique identifier and processes all historical data for that identifier, enabling cumulative analysis over time.
+
+## Prerequisites
+
+Before installing and running Luna Modelling API, ensure you have the following:
+
+- **Python**: Version 3.10 or higher
+- **PostgreSQL**: Version 12 or higher
+- **pip**: Python package installer
+- **Virtual Environment** (recommended): `venv` or `virtualenv`
+
+### System Dependencies
+
+- **PostgreSQL Development Headers**: Required for `psycopg2-binary`
+  - Ubuntu/Debian: `sudo apt-get install libpq-dev`
+  - macOS: `brew install postgresql`
+  - Windows: Included with PostgreSQL installation
+
+## Installation
+
+### 1. Clone the Repository
+
+```bash
+git clone <repository-url>
+cd luna_modelling_api
+```
+
+### 2. Create a Virtual Environment
+
+```bash
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+```
+
+### 3. Install Dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+### 4. Configure Environment Variables
+
+Create a `.env` file in the project root with the following configuration:
+
+```env
+# API Configuration
+API_V1_PREFIX=/api/v1
+PROJECT_NAME=Luna Modelling API
+BACKEND_CORS_ORIGINS=["http://localhost:3000"]
+
+# Database Configuration
+POSTGRES_USER=your_db_user
+POSTGRES_PASSWORD=your_db_password
+POSTGRES_SERVER=localhost
+POSTGRES_PORT=5432
+POSTGRES_DB=luna_db
+DB_SCHEMA=luna_modelling
+```
+
+### 5. Set Up the Database
+
+#### Create the Database
+
+```bash
+# Connect to PostgreSQL
+psql -U postgres
+
+# Create the database
+CREATE DATABASE luna_db;
+```
+
+#### Run Migrations
+
+```bash
+# Initialize Alembic (if not already done)
+alembic init alembic
+
+# Run migrations to create tables
+alembic upgrade head
+```
+
+### 6. Create an Initial Account (Optional)
+
+You can manually create an account in the database or use a script to seed initial data:
+
+```sql
+INSERT INTO accounts (account_name, api_key, quota)
+VALUES ('test_account', gen_random_uuid(), 1000);
+```
+
+## Running the API
+
+### Development Mode
+
+Start the API server with auto-reload enabled:
+
+```bash
+uvicorn main:app --reload --host 0.0.0.0 --port 8000
+```
+
+### Production Mode
+
+For production deployment:
+
+```bash
+uvicorn main:app --host 0.0.0.0 --port 8000 --workers 4
+```
+
+### Docker Deployment (Optional)
+
+If you have a Dockerfile:
+
+```bash
+docker build -t luna-modelling-api .
+docker run -p 8000:8000 --env-file .env luna-modelling-api
+```
+
+## API Documentation
+
+Once the API is running, you can access the interactive documentation:
+
+- **Swagger UI**: [http://localhost:8000/docs](http://localhost:8000/docs)
+- **ReDoc**: [http://localhost:8000/redoc](http://localhost:8000/redoc)
+- **OpenAPI Specification**: [http://localhost:8000/api/v1/openapi.json](http://localhost:8000/api/v1/openapi.json)
+
+## Available Endpoints
+
+### Root
+
+- `GET /` - Welcome message and API information
+
+### Health
+
+- `GET /api/v1/health` - Health check endpoint
+
+### Account
+
+- `GET /api/v1/account/quota` - Check remaining quota (requires API key)
+
+### Kalman Filter
+
+- `POST /api/v1/{account_id}/kalman` - Apply Kalman filtering to time series data (requires API key, consumes quota)
+
+## Authentication
+
+All protected endpoints require an API key to be passed in the request headers:
+
+```bash
+curl -H "X-API-Key: your-api-key-uuid" \
+     http://localhost:8000/api/v1/account/quota
+```
+
+## Example Usage
+
+### Check Quota
+
+```bash
+curl -X GET "http://localhost:8000/api/v1/account/quota" \
+     -H "X-API-Key: your-api-key"
+```
+
+### Process Kalman Filter
+
+```bash
+curl -X POST "http://localhost:8000/api/v1/1/kalman" \
+     -H "X-API-Key: your-api-key" \
+     -H "Content-Type: application/json" \
+     -d '{
+       "results": [[10.2, 10.5, 10.1, 9.8, 10.3]],
+       "save": false
+     }'
+```
+
+### Process and Save Data
+
+```bash
+curl -X POST "http://localhost:8000/api/v1/1/kalman" \
+     -H "X-API-Key: your-api-key" \
+     -H "Content-Type: application/json" \
+     -d '{
+       "results": [[10.2, 10.5, 10.1, 9.8, 10.3]],
+       "save": true,
+       "unique_identifier": "sensor_001"
+     }'
+```
+
+## Project Structure
+
+```
+luna_modelling_api/
+├── api/
+│   └── routes/          # API route handlers
+│       ├── account.py   # Account and quota endpoints
+│       ├── health.py    # Health check
+│       └── kalman.py    # Kalman filter endpoints
+├── core/
+│   ├── config.py        # Configuration settings
+│   ├── database.py      # Database connection
+│   └── deps/            # Dependency injection
+│       ├── check_api_key.py   # API key verification
+│       └── check_quota.py     # Quota management
+├── models/              # SQLAlchemy models
+│   ├── account.py       # Account model
+│   └── data.py          # Data storage model
+├── schemas/             # Pydantic schemas
+│   ├── account.py       # Account schemas
+│   └── kalman.py        # Kalman I/O schemas
+├── services/            # Business logic
+│   └── kalman.py        # Kalman filter processing
+├── modelling/           # Statistical models
+│   ├── kalman_filter.py # Kalman filter implementation
+│   └── constants.py     # Model constants
+├── main.py              # Application entry point
+├── requirements.txt     # Python dependencies
+└── .env                 # Environment variables (not in git)
+```
+
+## Development
+
+### Running Tests
+
+```bash
+pytest
+```
+
+### Code Formatting
+
+```bash
+# Using black
+black .
+
+# Using isort
+isort .
+```
+
+### Database Migrations
+
+```bash
+# Create a new migration
+alembic revision --autogenerate -m "description"
+
+# Apply migrations
+alembic upgrade head
+
+# Rollback migration
+alembic downgrade -1
+```
+
+## Troubleshooting
+
+### Database Connection Issues
+
+- Verify PostgreSQL is running: `pg_isready`
+- Check credentials in `.env` file
+- Ensure database exists: `psql -l`
+
+### API Key Authentication Failures
+
+- Verify the API key exists in the `accounts` table
+- Ensure the `X-API-Key` header is correctly formatted
+- Check for UUID formatting (no quotes, proper format)
+
+### Quota Exceeded Errors
+
+- Check remaining quota: `GET /api/v1/account/quota`
+- Update quota in database if needed: `UPDATE accounts SET quota = 1000 WHERE id = 1;`
+
+## Support
+
+For issues, questions, or contributions, please refer to the project repository or contact the development team.
+
+## License
+
+[Specify your license here]

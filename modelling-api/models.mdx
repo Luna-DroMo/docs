@@ -1,0 +1,468 @@
+# Kalman Filter Model
+
+## Overview
+
+The Kalman Filter endpoint processes time series data to reduce noise and extract smooth, accurate predictions. It supports two modes of operation: stateless filtering and stateful filtering with persistent data storage.
+
+## Endpoint
+
+```
+POST /api/v1/{account_id}/kalman
+```
+
+**Authentication**: Required (API Key via `X-API-Key` header)
+**Quota**: Consumes 1 quota unit per request
+
+## Input Schema
+
+### KalmanInput
+
+| Field               | Type                  | Required              | Description                                                                   |
+| ------------------- | --------------------- | --------------------- | ----------------------------------------------------------------------------- |
+| `results`           | `array[array[float]]` | Yes                   | A 2D array where each inner list contains time series values                  |
+| `save`              | `boolean`             | No (default: `false`) | Whether to save the data to the database for cumulative processing            |
+| `unique_identifier` | `string`              | Conditional           | Required when `save` is `true`. A unique identifier for grouping related data |
+
+### Validation Rules
+
+- When `save` is `true`, `unique_identifier` **must** be provided
+- Each inner array in `results` must contain at least one value
+- All values must be valid floating-point numbers
+
+## Operation Modes
+
+### Mode 1: Stateless Filtering (Without ID)
+
+**Use Case**: Process a single batch of time series data without persistence.
+
+**Characteristics**:
+
+- `save`: `false`
+- `unique_identifier`: Not required (can be `null` or omitted)
+- Data is **not stored** in the database
+- Filters only the provided data in the current request
+- Ideal for one-off analysis or real-time processing
+
+**Example Request**:
+
+```json
+{
+  "results": [[10.2, 10.5, 10.1, 9.8, 10.3, 10.0, 9.9, 10.4]],
+  "save": false
+}
+```
+
+**Behavior**:
+
+1. Accepts the input time series data
+2. Applies Kalman filtering to the provided data
+3. Returns filtered results, raw state estimates, and smoothed state estimates
+4. Does **not** persist any data to the database
+
+---
+
+### Mode 2: Stateful Filtering (With ID)
+
+**Use Case**: Accumulate and process historical data over time for a specific identifier.
+
+**Characteristics**:
+
+- `save`: `true`
+- `unique_identifier`: **Required** (e.g., `"sensor-001"`, `"user-123"`)
+- Data **is stored** in the database with the provided identifier
+- Processes **all historical data** associated with the identifier, including the current request
+- Ideal for tracking trends over time, cumulative analysis, or multi-session processing
+
+**Example Request**:
+
+```json
+{
+  "results": [[10.2, 10.5, 10.1, 9.8, 10.3]],
+  "save": true,
+  "unique_identifier": "sensor-001-2024"
+}
+```
+
+**Behavior**:
+
+1. Saves the incoming data to the database with the `unique_identifier`
+2. Retrieves **all previous data** saved with the same `unique_identifier` for the account
+3. Combines all historical data (ordered by creation time)
+4. Applies Kalman filtering to the **complete dataset**
+5. Returns filtered results based on all available data
+
+**Important Notes**:
+
+- The filter processes data cumulatively, so each request includes all previous data with the same identifier
+- Results will change over time as more data is added
+- This is useful for progressive refinement of predictions as more observations become available
+
+---
+
+## Data Format
+
+### Expected Input Format
+
+The `results` field must be a **2D array** (array of arrays). Each inner array represents a sequence of time series observations.
+
+#### Single Time Series
+
+```json
+{
+  "results": [[10.2, 10.5, 10.1, 9.8, 10.3]]
+}
+```
+
+This represents a single time series with 5 observations.
+
+#### Multiple Time Series (Rows)
+
+```json
+{
+  "results": [
+    [10.2, 10.5, 10.1],
+    [9.8, 10.3, 10.0],
+    [9.9, 10.4, 10.2]
+  ]
+}
+```
+
+This represents 3 separate time series, each with 3 observations. The Kalman filter processes these as sequential observations in the order provided.
+
+#### Real-World Example: Sensor Data
+
+```json
+{
+  "results": [[23.5, 23.7, 23.4, 23.6, 23.8, 23.9, 23.5]],
+  "save": true,
+  "unique_identifier": "temperature-sensor-001"
+}
+```
+
+Temperature readings from a sensor over 7 time points, saved for cumulative tracking.
+
+---
+
+## Output Schema
+
+### KalmanOutput
+
+| Field           | Type                  | Description                                                                    |
+| --------------- | --------------------- | ------------------------------------------------------------------------------ |
+| `filtered_data` | `array[float]`        | The filtered time series values (predictions) after applying the Kalman filter |
+| `raw_state`     | `array[float]`        | The raw state estimates from the forward pass of the Kalman filter             |
+| `smooth_state`  | `array[float]`        | The smoothed state estimates from the backward smoothing pass (RTS smoother)   |
+| `input_data`    | `array[array[float]]` | Echo of the original input data from the request                               |
+
+### Example Response
+
+```json
+{
+  "filtered_data": [10.2, 10.35, 10.25, 10.02, 10.15, 10.08, 10.01, 10.22],
+  "raw_state": [10.2, 10.35, 10.25, 10.02, 10.15, 10.08, 10.01, 10.22],
+  "smooth_state": [10.2, 10.33, 10.27, 10.05, 10.13, 10.09, 10.03, 10.2],
+  "input_data": [[10.2, 10.5, 10.1, 9.8, 10.3, 10.0, 9.9, 10.4]]
+}
+```
+
+---
+
+## Kalman Filter Algorithm
+
+The Luna API uses a **Rauch-Tung-Striebel (RTS) smoother**, which consists of two passes:
+
+### 1. Forward Pass (Prediction + Update)
+
+For each observation:
+
+1. **Predict**: Estimate the next state based on the current state
+2. **Update**: Correct the prediction using the actual observation
+
+**Output**: `raw_state` - state estimates from the forward pass
+
+### 2. Backward Pass (Smoothing)
+
+After the forward pass, the algorithm runs backward through the data to refine estimates using future observations.
+
+**Output**: `smooth_state` - refined state estimates
+
+### Model Parameters
+
+The filter uses the following matrices (defined in `modelling/constants.py`):
+
+- **F** (State Transition Matrix): `[[1]]` - assumes state remains constant
+- **H** (Observation Matrix): 28x1 matrix mapping latent state to observations
+- **Q** (Process Noise Covariance): `[[0.1001]]` - system dynamics noise
+- **R** (Observation Noise Covariance): 28x28 matrix - measurement noise
+- **x0** (Initial State): `[[0]]` - starting state estimate
+
+---
+
+## Use Cases
+
+### Use Case 1: Real-Time Sensor Filtering
+
+**Scenario**: Filter noisy sensor data in real-time without storing history.
+
+```bash
+curl -X POST "http://localhost:8000/api/v1/1/kalman" \
+     -H "X-API-Key: your-api-key" \
+     -H "Content-Type: application/json" \
+     -d '{
+       "results": [[22.1, 22.5, 22.3, 22.7, 22.4]],
+       "save": false
+     }'
+```
+
+### Use Case 2: Weekly Data Accumulation
+
+**Scenario**: Submit weekly data and process it cumulatively over time.
+
+**Week 1**:
+
+```json
+{
+  "results": [[10.2, 10.5, 10.1, 9.8, 10.3]],
+  "save": true,
+  "unique_identifier": "user-123-sensor"
+}
+```
+
+**Week 2**:
+
+```json
+{
+  "results": [[10.0, 9.9, 10.4, 10.2, 10.1]],
+  "save": true,
+  "unique_identifier": "user-123-sensor"
+}
+```
+
+The second request will process **all 10 observations** (5 from Week 1 + 5 from Week 2).
+
+### Use Case 3: Device-Specific Tracking
+
+**Scenario**: Track data from multiple devices separately.
+
+**Device A**:
+
+```json
+{
+  "results": [[23.5, 23.7, 23.4]],
+  "save": true,
+  "unique_identifier": "device-A"
+}
+```
+
+**Device B**:
+
+```json
+{
+  "results": [[18.2, 18.5, 18.3]],
+  "save": true,
+  "unique_identifier": "device-B"
+}
+```
+
+Each device maintains its own data history.
+
+---
+
+## Error Responses
+
+### 400 Bad Request
+
+**Missing Identifier**:
+
+```json
+{
+  "detail": "unique_identifier is required when save is True"
+}
+```
+
+**Invalid Data**:
+
+```json
+{
+  "detail": "Input data must contain non-empty lists of observations"
+}
+```
+
+### 403 Forbidden
+
+**Quota Exceeded**:
+
+```json
+{
+  "detail": "Quota exceeded. Please upgrade your plan."
+}
+```
+
+### 404 Not Found
+
+**Account Mismatch**:
+
+```json
+{
+  "detail": "Account not found."
+}
+```
+
+### 500 Internal Server Error
+
+**Processing Error**:
+
+```json
+{
+  "detail": "Error processing Kalman filter: <error details>"
+}
+```
+
+---
+
+## Data Storage
+
+When `save` is `true`, data is stored in the `data` table with the following structure:
+
+| Column              | Type      | Description                                |
+| ------------------- | --------- | ------------------------------------------ |
+| `id`                | Integer   | Auto-generated primary key                 |
+| `unique_identifier` | String    | The identifier provided in the request     |
+| `data`              | JSONB     | The raw time series data (`results` array) |
+| `account_id`        | Integer   | Foreign key to the account                 |
+| `created_at`        | Timestamp | When the data was saved                    |
+
+### Data Retrieval
+
+When processing with `save=true`, the service:
+
+1. Saves the new data with the current timestamp
+2. Queries all records matching the `unique_identifier` and `account_id`
+3. Orders results by `created_at` (chronological order)
+4. Flattens all data arrays into a single combined dataset
+5. Applies filtering to the complete dataset
+
+---
+
+## Best Practices
+
+### 1. Choose the Right Mode
+
+- Use **stateless mode** (`save=false`) for:
+
+  - One-time analysis
+  - Real-time processing without history
+  - Testing and debugging
+
+- Use **stateful mode** (`save=true`) for:
+  - Longitudinal studies
+  - Progressive data collection
+  - Multi-session tracking
+
+### 2. Identifier Naming Conventions
+
+Use descriptive, hierarchical identifiers:
+
+- `sensor-{device_id}-{location}`
+- `user-{user_id}-{metric_type}`
+- `experiment-{exp_id}-week-{week_number}`
+
+### 3. Data Quality
+
+- Ensure consistent sampling rates
+- Handle missing data before submission (or use NaN values, which the filter handles)
+- Validate data ranges to avoid extreme outliers that could destabilize the filter
+
+### 4. Quota Management
+
+- Monitor your quota using `GET /api/v1/account/quota`
+- Each Kalman filter request consumes **1 quota unit**, regardless of data size
+- Plan data submission frequency according to your quota allocation
+
+---
+
+## Technical Details
+
+### Missing Value Handling
+
+The Kalman filter automatically handles missing values (NaN):
+
+- If the first observation is missing, it initializes with a default value of `2`
+- For subsequent missing values, it samples from the last observed state distribution
+- Missing values are imputed using the predicted state before updating
+
+### Numerical Stability
+
+The filter uses:
+
+- **Joseph form** covariance update for numerical stability
+- Matrix inversion via `np.linalg.inv` (ensure observations are well-conditioned)
+- Covariance matrices are maintained as positive definite throughout
+
+### Performance Considerations
+
+- **Stateless mode**: Processing time is O(n) where n = number of observations
+- **Stateful mode**: Processing time is O(N) where N = total historical observations
+- Large cumulative datasets may increase processing time and quota consumption
+
+---
+
+## Related Endpoints
+
+- **Check Quota**: `GET /api/v1/account/quota` - Monitor remaining API calls
+- **Health Check**: `GET /api/v1/health` - Verify API availability
+
+---
+
+## Example Workflow
+
+```bash
+# 1. Check your quota
+curl -X GET "http://localhost:8000/api/v1/account/quota" \
+     -H "X-API-Key: your-api-key"
+
+# 2. Submit initial data with identifier
+curl -X POST "http://localhost:8000/api/v1/1/kalman" \
+     -H "X-API-Key: your-api-key" \
+     -H "Content-Type: application/json" \
+     -d '{
+       "results": [[10.2, 10.5, 10.1, 9.8, 10.3]],
+       "save": true,
+       "unique_identifier": "sensor-001"
+     }'
+
+# 3. Add more data later (cumulative processing)
+curl -X POST "http://localhost:8000/api/v1/1/kalman" \
+     -H "X-API-Key: your-api-key" \
+     -H "Content-Type: application/json" \
+     -d '{
+       "results": [[10.0, 9.9, 10.4]],
+       "save": true,
+       "unique_identifier": "sensor-001"
+     }'
+
+# 4. Process different data without saving
+curl -X POST "http://localhost:8000/api/v1/1/kalman" \
+     -H "X-API-Key: your-api-key" \
+     -H "Content-Type: application/json" \
+     -d '{
+       "results": [[15.2, 15.5, 15.1]],
+       "save": false
+     }'
+```
+
+---
+
+## Summary
+
+The Kalman Filter model provides flexible time series processing with two distinct modes:
+
+| Feature                 | Stateless (`save=false`) | Stateful (`save=true`)           |
+| ----------------------- | ------------------------ | -------------------------------- |
+| **Identifier Required** | No                       | Yes                              |
+| **Data Persistence**    | No                       | Yes                              |
+| **Processing Scope**    | Current request only     | All historical data with same ID |
+| **Use Case**            | One-time filtering       | Cumulative tracking              |
+| **Database Impact**     | None                     | Stores data in `data` table      |
+
+Choose the appropriate mode based on your application requirements and data workflow.

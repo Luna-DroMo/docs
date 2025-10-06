@@ -1,0 +1,148 @@
+---
+title: Empirical Results & Intervention
+---
+
+## 1. Characteristics of the Latent Dropout States
+
+The application of the NDLC-SEM allowed for the separation of two **discrete latent states**,  
+$s = 1$ (no intention to quit) and $s = 2$ (intention to quit), based on distinct response patterns across seven continuous affective and cognitive scales.
+
+### Intention to Quit ($s = 2$) Profile
+
+Students who transitioned to the latent state $s = 2$ exhibited **consistently higher values** across all seven affective/cognitive scales.  
+This profile characterizes students with:
+
+- Higher **stress levels**
+- Stronger **fear of failure**
+- Perceived **overinvestment of time**
+- Pronounced **negative affective states (PAN)**
+
+These patterns clearly align with an emerging **intention to quit**.
+
+### Persistent Dynamics in $s = 2$
+
+The autoregressive coefficients ($\mathbf{B}_{1is}$) were **larger under $s = 2$** than under $s = 1$ (except for the “time investment” scale).  
+This indicates that students intending to quit display **stronger, more self-reinforcing autoregressive patterns**, suggesting persistent negative feedback loops in affective and cognitive processes.
+
+### Role of Cognitive Skills (IQ)
+
+Baseline cognitive ability ($\eta_{2i}$) showed strong predictive power for within-level scales when students were in state $s = 1$.  
+Higher IQ scores corresponded to **lower stress** and **more stable motivational states**.
+
+To reflect the _Rubicon model_ of action, the **return probability** from the “intention to quit” state back to “no intention to quit” was **constrained**:
+
+$$
+P_{12} \sim \text{unif}(0.0, 0.1)
+$$
+
+The estimated mean value was:
+
+$$
+P_{12} = 0.097
+$$
+
+indicating that individuals rarely and only **slowly return** to the no-intention state once the quitting intention is formed.
+
+---
+
+## 2. Predictive Factors and the Markov Switching Model
+
+The parameters of the **Markov switching model** identified critical predictors for the transition from $s = 1$ to $s = 2$.
+
+### Primary Predictors ($\gamma_3$)
+
+The transition was primarily driven by:
+
+- **Negative Affect (PAN)**
+- **Fear of Failure**
+
+Thus, the **dynamic affective states** and **expectation of failure** are the key determinants of entering the dropout-intention state.
+
+### Cross-Level Effects ($\gamma_4$)
+
+The interaction between baseline cognitive skills (IQ, $\eta_{2i}$) and within-level states ($\mathbf{\eta}_{1i,t-1}$) was **negligible** ($\gamma_4 \approx 0$).  
+This shows that while IQ stabilizes affect in $s = 1$, it **does not directly prevent** the switch to $s = 2$, which is primarily emotion-driven.
+
+---
+
+## 3. Establishing the Intervention Window
+
+The most practically relevant finding was the identification of an **intervention window** that precedes actual dropout by several weeks.
+
+- **Critical State Timing:**  
+  The transition to “intention to quit” ($s = 2$) occurred, on average, at
+
+  $$
+  t = 22.2 \; (\text{SD} = 6.5)
+  $$
+
+  corresponding to approximately the **8th week** of the semester.
+
+- **Actual Dropout Timing:**  
+  Dropout behavior occurred on average at
+
+  $$
+  t = 45.0 \; (\text{SD} = 11.9)
+  $$
+
+  corresponding to the **16th week**.
+
+- **Lead Time for Intervention:**  
+  The **forecasted state switch occurred about 8 weeks before** the actual dropout behavior.
+
+- **Intervention Implication:**  
+  The period around **$t = 22.2$** represents a **critical monitoring point** for identifying and supporting at-risk students.
+
+---
+
+## 4. Overall Student Status and Forecasting Extent
+
+At the end of the observation period ($t = 50$):
+
+- **36.1%** of students had **actually dropped out**.
+- The model classified **73.8%** of students as either having dropped out or belonging to the latent class $s = 2$.
+- When the forecast was **extended by 5 additional time points**, the proportion predicted to develop dropout intentions rose to **40.2%**, suggesting a **continued increase in risk** beyond the observed period.
+
+---
+
+## 5. Robustness and Performance (Simulation Study)
+
+A **simulation study** was conducted to assess the robustness of the **FFBS forecasting procedure** across varying conditions of sample size ($N_1$) and number of measurement occasions ($N_t$).
+
+### Sensitivity
+
+The model achieved **high sensitivity (> 0.91)** across all conditions.  
+This means that individuals who switched states were reliably detected — even for forecasted time points.
+
+### Specificity
+
+Specificity was **lower** in the forecast period, ranging between **0.53–0.70**, indicating a **slight over-prediction** of dropout risk (progressive classification).  
+However, **specificity improved significantly** when the sample size increased from $N_1 = 25$ to $N_1 = 50$.
+
+### Forecast Precision
+
+Forecast precision was strongly dependent on the **number of measurement occasions ($N_t$)**:
+
+- With $N_t = 50$, the model achieved **lower quadratic score values** ($\delta_h$), indicating **higher precision**.
+- With $N_t = 25$, forecast variance and uncertainty increased.
+
+### Forecast Interval Width
+
+Forecast interval (FI) width **increased with longer forecasting horizons**, forming a **megaphone pattern**.  
+However, **increasing both $N_t$ and $N_1$** reduced FI width substantially.
+
+### Coverage Rates
+
+The **95% forecast interval coverage** was slightly below nominal, at **88–90%**.  
+This deviation is attributed to the model’s **tendency to over-classify** students into the risk state ($s=2$).
+
+---
+
+> **Summary:**  
+> The empirical findings from the SAM study confirm the NDLC-SEM + FFBS framework’s ability to:
+>
+> - Accurately forecast **latent psychological state transitions**
+> - Identify **precise intervention windows** for dropout prevention
+> - Achieve robust predictive performance across different sampling and time configurations
+>
+> Together, these results provide a foundation for **data-driven, early-warning systems** in higher education, capable of detecting and addressing dropout risk dynamically.

@@ -1,0 +1,389 @@
+---
+title: Installation & Open Source
+description: "Set up the Student Dropout web platform for your environment."
+---
+
+## Prerequisites
+
+Before installing Luna, ensure you have the following installed:
+
+- **Python 3.9+**
+- **Docker** and **Docker Compose**
+- **PostgreSQL** (for local development without Docker)
+- **Git**
+
+## Dependencies
+
+### Core Packages
+
+| Package               | Version | Purpose            |
+| --------------------- | ------- | ------------------ |
+| Django                | 4.2.5   | Web framework      |
+| Django REST Framework | 3.14.0  | API development    |
+| psycopg2-binary       | 2.9.7   | PostgreSQL adapter |
+| django-cors-headers   | 4.2.0   | CORS handling      |
+| python-decouple       | 3.8     | Environment config |
+| django-cron           | -       | Scheduled tasks    |
+| drf-yasg              | -       | API documentation  |
+| numpy                 | -       | Data analysis      |
+
+### Additional Dependencies
+
+```
+asgiref==3.7.2
+pytz==2023.3.post1
+sqlparse==0.4.4
+typing-extensions==4.7.1
+tzdata==2023.3
+python-dotenv
+```
+
+## Installation Methods
+
+### Method 1: Docker Installation (Recommended)
+
+#### Step 1: Clone Repository
+
+```bash
+git clone https://github.com/Luna-DroMo/luna_backend
+cd luna_backend
+```
+
+#### Step 2: Configure Environment Variables
+
+Create a `.env` file in the project root:
+
+```bash
+# Database Configuration
+PGHOST=db
+PGNAME=postgres
+PGUSER=your_username
+PGPASSWORD=your_secure_password
+PGPORT=5432
+
+# Django Configuration
+SECRET_KEY=your_django_secret_key
+DEBUG=True
+ALLOWED_HOSTS=localhost,127.0.0.1
+```
+
+#### Step 3: Build and Start Services
+
+```bash
+# Build and start all containers
+docker-compose up --build
+
+# Or run in detached mode
+docker-compose up -d --build
+```
+
+This will start:
+
+- **Web Application** (Port 80 → 8000)
+- **PostgreSQL Database** (Port 5432)
+- **pgAdmin** (Port 8001)
+
+#### Step 4: Run Database Migrations
+
+```bash
+# Apply database migrations
+docker-compose exec web python manage.py migrate
+
+# Create migrations if models changed
+docker-compose exec web python manage.py makemigrations
+```
+
+#### Step 5: Create Superuser
+
+```bash
+docker-compose exec web python manage.py createsuperuser
+```
+
+Follow prompts to enter:
+
+- Email address
+- First name
+- Last name
+- Password
+
+#### Step 6: Initialize University Data
+
+Access PostgreSQL and create initial university:
+
+```bash
+# Connect to database
+docker-compose exec db psql -U postgres
+
+# Create university
+INSERT INTO core_university (id, name, created_at, updated_at)
+VALUES (1, 'University of Tübingen', NOW(), NOW());
+```
+
+Or use external tools (DBeaver, pgAdmin) with:
+
+- **Host**: localhost
+- **Port**: 5432
+- **Database**: postgres
+- **Username**: (from .env PGUSER)
+- **Password**: (from .env PGPASSWORD)
+
+#### Step 7: Access Application
+
+- **Main Application**: http://localhost
+- **Admin Portal**: http://localhost/admin
+- **pgAdmin**: http://localhost:8001
+  - Email: admin@pgadmin.org
+  - Password: admin
+
+### Method 2: Local Python Installation
+
+#### Step 1: Clone and Setup Virtual Environment
+
+```bash
+git clone <repository-url>
+cd luna_backend
+
+# Create virtual environment
+python3.9 -m venv venv
+
+# Activate virtual environment
+# On macOS/Linux:
+source venv/bin/activate
+# On Windows:
+venv\Scripts\activate
+```
+
+#### Step 2: Install Dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+#### Step 3: Configure Environment
+
+Create `.env` file:
+
+```bash
+# Database Configuration (Local PostgreSQL)
+PGHOST=localhost
+PGNAME=luna_db
+PGUSER=your_username
+PGPASSWORD=your_password
+PGPORT=5432
+
+# Django Configuration
+SECRET_KEY=your_django_secret_key
+DEBUG=True
+ALLOWED_HOSTS=localhost,127.0.0.1
+```
+
+#### Step 4: Setup PostgreSQL Database
+
+```bash
+# Create database
+createdb luna_db
+
+# Or via psql
+psql -U postgres
+CREATE DATABASE luna_db;
+```
+
+#### Step 5: Run Migrations
+
+```bash
+cd luna
+python manage.py migrate
+python manage.py createsuperuser
+```
+
+#### Step 6: Start Development Server
+
+```bash
+python manage.py runserver
+```
+
+Access at: http://localhost:8000
+
+## Docker Service Management
+
+### View Logs
+
+```bash
+# All services
+docker-compose logs
+
+# Specific service
+docker-compose logs web
+docker-compose logs db
+
+# Follow logs
+docker-compose logs -f web
+```
+
+### Container Access
+
+```bash
+# Access web container shell
+docker-compose exec web bash
+
+# Access database
+docker-compose exec db psql -U postgres
+```
+
+### Restart Services
+
+```bash
+# Restart all
+docker-compose restart
+
+# Restart specific service
+docker-compose restart web
+docker-compose restart db
+```
+
+### Stop Services
+
+```bash
+# Stop all containers
+docker-compose down
+
+# Stop and remove volumes (careful!)
+docker-compose down -v
+```
+
+## Database Setup Details
+
+### Docker Compose Configuration
+
+The `docker-compose.yml` defines three services:
+
+```yaml
+services:
+  web: # Django application (Port 80→8000)
+  db: # PostgreSQL database (Port 5432)
+  pgadmin: # Database admin interface (Port 8001)
+```
+
+### Dockerfile Overview
+
+The application uses Python 3.9 base image and:
+
+1. Installs Python dependencies from `requirements.txt`
+2. Installs system utilities (cron)
+3. Copies application code
+4. Sets up entrypoint script for initialization
+5. Exposes port 8000
+
+### Entrypoint Process
+
+The `entrypoint.sh` script:
+
+1. Waits for PostgreSQL to be ready
+2. Runs database migrations
+3. Starts cron for scheduled tasks
+4. Starts Django development server
+5. Executes django-cron jobs every 12 hours
+
+## Verification Steps
+
+### 1. Check Running Containers
+
+```bash
+docker-compose ps
+```
+
+Expected output:
+
+```
+NAME                COMMAND              STATUS         PORTS
+luna_backend_web    /entrypoint.sh       Up            0.0.0.0:80->8000/tcp
+luna_backend_db     postgres             Up            0.0.0.0:5432->5432/tcp
+luna_backend_pgadmin pgadmin             Up            0.0.0.0:8001->8001/tcp
+```
+
+### 2. Verify Database Connection
+
+```bash
+docker-compose exec web python manage.py dbshell
+```
+
+### 3. Check Migrations
+
+```bash
+docker-compose exec web python manage.py showmigrations
+```
+
+### 4. Access Admin Panel
+
+Navigate to http://localhost/admin and login with superuser credentials.
+
+## Troubleshooting
+
+### Port Conflicts
+
+If ports 80, 5432, or 8001 are in use, modify `docker-compose.yml`:
+
+```yaml
+ports:
+  - "8080:8000" # Change web port
+  - "5433:5432" # Change database port
+```
+
+### Database Connection Issues
+
+1. Ensure PostgreSQL container is running:
+
+   ```bash
+   docker-compose ps db
+   ```
+
+2. Check environment variables in `.env`
+
+3. Verify database logs:
+   ```bash
+   docker-compose logs db
+   ```
+
+### Migration Errors
+
+```bash
+# Reset migrations (development only!)
+docker-compose exec web python manage.py migrate --fake-initial
+
+# Or manually delete migration files and recreate
+docker-compose exec web python manage.py makemigrations
+docker-compose exec web python manage.py migrate
+```
+
+### Permission Issues
+
+```bash
+# Fix container permissions
+docker-compose exec web chmod +x /entrypoint.sh
+```
+
+## Next Steps
+
+After successful installation:
+
+1. **Configure Modules** - Create university modules via admin panel
+2. **Add Users** - Register students and lecturers
+3. **Create Surveys** - Design forms for data collection
+4. **Review Architecture** - See [Architecture Guide](./architecture.md)
+5. **Understand Workflows** - See [Student Experience](./student-experience.md) and [Lecturer Experience](./lecturer-experience.md)
+
+## Production Deployment
+
+For production deployment on AWS EC2 with Nginx:
+
+1. Use production-ready database (RDS or managed PostgreSQL)
+2. Configure Nginx as reverse proxy
+3. Set `DEBUG=False` in environment
+4. Use proper SSL certificates
+5. Configure allowed hosts
+6. Set up database backups
+7. Implement monitoring and logging
+
+---
+
+**Support**: For issues, consult project documentation or contact the development team.

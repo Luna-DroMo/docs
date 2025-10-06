@@ -1,0 +1,244 @@
+---
+title: Statistical Model
+---
+
+## 1. The Core Framework: Nonlinear Dynamic Latent Class SEM (NDLC-SEM)
+
+The forecasting of critical states in the SAM study required innovative techniques to capture the complex, multi-level nature of student dropout.  
+The methodological approach relies on the **Nonlinear Dynamic Latent Class Structural Equation Model (NDLC-SEM)** — a flexible Bayesian framework integrated with a modified **Forward Filtering Backward Sampling (FFBS)** algorithm for real-time prediction.
+
+---
+
+### 1.1 Key Capabilities
+
+The NDLC-SEM framework combines the capabilities of several dynamic models to simultaneously address **four essential data structures** for modeling the longitudinal dropout process using **Intensive Longitudinal Data (ILD)**.
+
+It models:
+
+1. **Inter-Individual Differences (Traits):** Stable characteristics (e.g., cognitive abilities).
+2. **Intra-Individual Changes (States):** Changeable psychological states (e.g., affective and motivational states).
+3. **Unobserved Heterogeneity of Trajectories:** Captured via **time-varying latent classes** following a _hidden Markov process_.
+   - In this study, these classes represent the discrete latent variable $S_{it}$:
+     - **$s=1$:** Intention to stay
+     - **$s=2$:** Intention to quit
+4. **Time-Dependent Nonlinearities:** Latent within-person variables predict transition probabilities with nonlinear effects.
+
+The model was implemented in **JAGS 4.2** and executed via the **R2jags** package, using a **Gibbs sampler** for Bayesian estimation.
+
+---
+
+## 2. Model Specification
+
+The model specification outlines how observed variables relate to latent constructs (**measurement models**) and how these latent constructs evolve and interact across levels (**structural models**).
+
+---
+
+### 2.1 Measurement Models
+
+**Within-Level (States – $\mathbf{\eta}_{1it}$):**
+
+Seventeen observed variables ($\mathbf{Y}_{1it}$) operationalize **seven continuous latent within-factors** ($\mathbf{\eta}_{1its}$), representing affective/cognitive states such as stress, fear of failure, and affect balance.
+
+All observed variables were centered and oriented so that higher values indicate stronger _intention to quit_.
+
+The within-level measurement model is consistent across latent states:
+
+$$
+\textbf{Equation (1):} \quad (\mathbf{Y}_{1it} \mid S_{it} = s) = \mathbf{\Lambda}_{10}\mathbf{\eta}_{1its} + \mathbf{\varepsilon}_{1it}
+$$
+
+Where:
+
+- $\mathbf{Y}_{1it}$ = (17 × 1) vector of observed variables
+- $\mathbf{\eta}_{1its}$ = (7 × 1) vector of latent state factors
+- $\mathbf{\varepsilon}_{1it}$ = vector of residuals
+
+---
+
+**Between-Level (Traits – $\mathbf{\eta}_{2i}$):**
+
+A single latent construct — _cognitive ability (IQ)_ — was modeled using three CFT-3 test items measured at baseline.
+
+$$
+\textbf{Equation (2):} \quad \mathbf{Y}_{2i} = \mathbf{\Lambda}_{2}\mathbf{\eta}_{2i} + \mathbf{\varepsilon}_{2i}
+$$
+
+Where:
+
+- $\mathbf{Y}_{2i}$ = (3 × 1) vector of observed indicators
+- $\mathbf{\eta}_{2i}$ = latent IQ factor
+- $\mathbf{\varepsilon}_{2i}$ = uncorrelated residuals
+
+---
+
+### 2.2 Structural Dynamics (Within-Level)
+
+The within-level dynamics were modeled using a **first-order autoregressive process (AR(1))**, specific to the discrete latent class $S_{it}=s$:
+
+$$
+\textbf{Equation (3):} \quad (\mathbf{\eta}_{1it} \mid S_{it}=s) = \mathbf{\alpha}_{1is} + \mathbf{B}_{1is}\mathbf{\eta}_{1i,t-1} + \mathbf{\zeta}_{1it}
+$$
+
+Where:
+
+- $\mathbf{\eta}_{1i,t-1}$ = latent states at previous time $t-1$
+- $\mathbf{\alpha}_{1is}$ = class-specific intercept vector
+- $\mathbf{B}_{1is}$ = diagonal matrix of AR(1) effects
+- $\mathbf{\zeta}_{1it}$ = innovation term
+
+_Note:_ Initial tests showed near-zero cross-lagged effects, justifying a simplified AR(1) structure.
+
+---
+
+### 2.3 Structural Models (Between- and Cross-Level Interactions)
+
+The stable latent trait (IQ, $\mathbf{\eta}_{2i}$) influences both the intercepts and autoregressive dynamics of the latent state processes.
+
+**Intercept Function:**
+
+$$
+\textbf{Equation (4):} \quad \mathbf{\alpha}_{1is} = \mathbf{\alpha}_{21s} + \mathbf{\beta}_{2s}\eta_{2i} + \mathbf{\zeta}_{2i}
+$$
+
+**AR Coefficients with Cross-Level Moderation:**
+
+$$
+\textbf{Equation (5):} \quad \mathbf{B}_{1is} = \mathbf{B}_{1s} + \mathbf{\Omega}_{2s}\eta_{2i}
+$$
+
+Here, $\mathbf{\Omega}_{2s}$ allows cognitive ability (IQ) to moderate motivational and self-regulatory state dynamics over time.
+
+---
+
+### 2.4 Markov Switching Model (Transition Probabilities)
+
+The discrete latent state $S_{it}$ evolves according to a **hidden Markov process**, governed by transition probabilities derived via a **logit link function**.
+
+**Probability of Staying in $s=1$ (No Intention to Quit):**
+
+$$
+\textbf{Equation (6):} \quad \text{P}(S_{it}=1 \mid S_{i,t-1}=1) = \frac{\exp(\nu_{it}^{11})}{\exp(\nu_{it}^{11}) + 1}
+$$
+
+**Logit Function Definition:**
+
+$$
+\textbf{Equation (10):} \quad \nu_{it}^{11} = \gamma_{1} + \gamma_{2}\eta_{2i} + \mathbf{\gamma}_{3}\mathbf{\eta}_{1i,t-1} + \mathbf{\gamma}_{4}\mathbf{\eta}_{1i,t-1}\eta_{2i}
+$$
+
+**Return Probability (P₁₂):**  
+The transition from _intention to quit_ ($s=2$) to _intention to stay_ ($s=1$) is assumed rare and slow:
+
+$$
+P_{12} \sim \text{unif}(0.0, 0.1)
+$$
+
+This aligns with the **Rubicon model**, positing that individuals rarely revert once a quitting intention is formed.
+
+---
+
+## 3. Identification of Latent Discrete States
+
+Identifying the latent states ($S_{it}$) as “intention to drop out” involved a confirmatory modeling strategy:
+
+1. **Imposed Constraints:**  
+   Persons in state $s=2$ constrained to show _higher scores_ on all seven negative affect scales.
+2. **Predictive Link:**  
+   Transition probabilities were regressed on affective scales and their interactions with IQ.
+3. **Temporal Restrictions:**  
+   Transitions back to $s=1$ restricted to low probability.
+4. **Partial Observation:**  
+   Dropouts observed during the semester were coded directly as $S_{it}=2$ (manifest dropout).
+
+---
+
+## 4. Forecasting Implementation: Forward Filtering Backward Sampling (FFBS)
+
+Forecasting dynamic latent states is achieved through the **Forward Filtering Backward Sampling (FFBS)** algorithm — a Bayesian sequential estimation method adapted for hidden Markov models (see West & Harrison, 1997).
+
+---
+
+### 4.1 Key Features of the FFBS Adaptation
+
+- Integrates seamlessly with the **Gibbs sampler** (forecasting within estimation loop).
+- Handles **latent time-dependent predictors** ($\mathbf{\eta}_{1it}$) driving state transitions.
+- Produces **real-time posterior forecasts** for the latent dropout intention states.
+
+---
+
+### 4.2 Core Algorithmic Steps
+
+#### Step 1 — Reformulation (Aspect i.)
+
+Reformulate NDLC-SEM into a **Dynamic Linear Model (DLM)** framework:
+
+- **Observation Equation:**
+
+  $$
+  \mathbf{\eta}_{1jts} = \mathbf{F}_{jt}\mathbf{\theta}_{jts} + \mathbf{v}_{jts}
+  $$
+
+- **System Equation:**
+  $$
+  \mathbf{\theta}_{jts} = \mathbf{G}_{jts}\mathbf{\theta}_{j,t-1,s} + \mathbf{w}_{jts}
+  $$
+
+---
+
+#### Step 2 — Define Strata (Aspect ii.)
+
+Define **four strata** $(s, s')$ for every consecutive time pair $(t, t-1)$, covering all possible transitions between “stay” and “quit” states.
+
+---
+
+#### Step 3 — Continuous State Prediction (Aspect iii.)
+
+For each stratum, sample latent factor scores, producing four forecast draws:
+
+$$
+(\eta_{1jit} \mid (s,s'), D_{t-1})
+$$
+
+---
+
+#### Step 4 — Marginal Predictive Density (Aspect iv.)
+
+Compute the mixture of predictive densities across the four strata:
+
+$$
+\text{P}(\mathbf{\eta}_{1jit}\mid D_{t-1}) = \sum_{s=1}^{2}\sum_{s'=1}^{2} \left[ \pi_{i}(s,s')p_{i,t-1}(s') \text{P}(\mathbf{\eta}_{1jit}\mid(s,s'),D_{t-1}) \right]
+$$
+
+This produces the overall **forecast distribution** of the continuous latent variable.
+
+---
+
+### 4.3 Posterior Updating and Smoothing
+
+After observing $D_t$, priors are updated and the **joint posterior** over model combinations is computed:
+
+$$
+p_{it}(s,s') \propto \pi_{i}(s,s')p_{i,t-1}(s')\text{P}(\mathbf{\eta}_{1jit}\mid M_{it}(s), M_{i,t-1}(s'),D_t)
+$$
+
+The **smoothed posterior** for each latent state is then:
+
+$$
+p_{it}(s) = \sum_{s'=1}^{2} p_{it}(s,s')
+$$
+
+---
+
+### 4.4 H-Steps-Ahead Forecasting
+
+For future predictions ($t > N_t$):
+
+- Use last observed posteriors ($t = N_t$).
+- Recursively define expected values $\mathbf{a}_{jt}$ and covariance matrices $\mathbf{R}_{jt}$.
+- Generate the $H$-step-ahead forecast distribution of latent factors $\mathbf{\eta}_{1jt}$.
+
+---
+
+> **Summary:**  
+> The integrated **NDLC-SEM + FFBS** framework enables dynamic, real-time prediction of **latent dropout intentions**, bridging stable cognitive traits and fluctuating emotional-motivational states.  
+> It provides a powerful approach to modeling **nonlinear psychological dynamics** in longitudinal educational data.

@@ -1,0 +1,53 @@
+# Luna Web Platform Overview
+
+## Mission & Scope
+
+Luna is a research-driven web platform that partners with universities to understand and mitigate mathematics student dropout. It combines structured wellbeing data collection, real-time analytics, and actionable insights so that researchers, lecturers, and support staff can coordinate interventions before students disengage.
+
+This document provides a high-level orientation to the platform for new collaborators, grant partners, and technical contributors.
+
+## Stakeholders
+
+| Role                   | Primary Goals                                                         | Luna Support                                                                       |
+| ---------------------- | --------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| **Researchers**        | Capture longitudinal wellbeing data and evaluate retention hypotheses | Automated survey pipeline, raw/processed data exports, reproducible modelling jobs |
+| **Lecturers**          | Monitor module health and respond to concerning trends                | Cohort dashboards, risk alerts, module configuration tools                         |
+| **Students**           | Receive timely check-ins and track personal wellbeing trends          | Weekly micro-surveys, personal analytics, privacy controls                         |
+| **Platform Engineers** | Operate the infrastructure reliably and securely                      | Containerised services, observability hooks, automated cron scheduling             |
+
+## Value Proposition
+
+- **Evidence-based retention insights** – captures both background and weekly longitudinal signals, then applies Kalman-filter smoothing to detect at-risk trajectories early.
+- **University-ready operations** – supports multi-university, multi-module deployments with lecturer-controlled enrolment and compliance-friendly data segregation.
+- **Explainable analytics** – exposes cohort-level trends and per-student narratives that are rooted in transparent psychometric models rather than black-box scoring.
+- **Extensible architecture** – API-first Django backend, modular modelling package, and documented analytics outputs simplify further research integrations.
+
+## Core Capability Areas
+
+1. **Identity & Access Management** – custom user model with student, lecturer, and administrator roles, university scoping, and Django admin support.
+2. **Module & Survey Lifecycle** – background forms, password-protected module enrolments, scheduled weekly surveys, and reminder cron jobs.
+3. **Analytics Pipeline** – modelling app orchestrates Kalman filtering and risk scoring, persisting smoothed metrics for dashboards and exports.
+4. **Notifications & Reporting** – automated cron runners execute survey creation and analytics updates; optional email hooks are available for interventions.
+5. **Operations & Observability** – containerised deployment (Docker + docker-compose), PostgreSQL persistence, and PGAdmin for manual inspection.
+
+## Platform Components
+
+| Component             | Description                                                                                   | Key Technologies                                  |
+| --------------------- | --------------------------------------------------------------------------------------------- | ------------------------------------------------- |
+| **Backend API**       | RESTful endpoints for account management, module orchestration, forms, surveys, and analytics | Django 4.2.x, Django REST Framework               |
+| **Modelling Service** | Processes survey streams, performs Kalman filtering, and stores smoothed trajectories         | Python data stack, custom modelling package       |
+| **Task Scheduling**   | Ensures surveys are generated, processed, and escalated on time                               | `django-cron`, custom cron runner loop            |
+| **Data Layer**        | Source of truth for all user, module, form, and survey data                                   | PostgreSQL 14, Django ORM                         |
+| **Ops Tooling**       | Local and production observability, DB management, deployment automation                      | Docker, Docker Compose, PGAdmin, Makefile helpers |
+
+## Feedback Channels
+
+- **GitHub Issues** – for bugs and feature requests (tag with `web-platform`).
+- **Research Steering Group** – meets monthly to review analytics findings and prioritise new instrumentation.
+- **Security & Compliance** – report incidents to the platform administrators; SOC-style runbooks are documented in the private operations repository.
+
+> 📚 Continue with the companion guides:
+>
+> - `web-platform/installation.md` for developer setup instructions.
+> - `web-platform/architecture.md` for infrastructure, data modelling, and request flows.
+> - `web-platform/student-experience.md` and `web-platform/lecturer-experience.md` for persona-centred walkthroughs.

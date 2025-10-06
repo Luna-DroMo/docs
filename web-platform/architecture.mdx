@@ -1,0 +1,294 @@
+---
+title: Architecture
+---
+
+## System Overview
+
+- **Runtime Stack:** Django REST Framework application served from Docker containers, backed by PostgreSQL, with analytics powered by a custom modelling module.
+- **Hosting Pattern:** Container stack deployed on AWS EC2, fronted by Nginx for TLS termination, caching, and static asset delivery.
+- **Automation:** Cron-driven background jobs create surveys, execute modelling pipelines, and issue alerts without blocking API requests.
+- **Observability:** Application logs streamed via Docker, PostgreSQL introspection through pgAdmin, and health endpoints ready for integration into CloudWatch or Datadog.
+
+## Infrastructure Topology
+
+```mermaid
+flowchart LR
+    A[Student Browser] --> D[Internet]
+    B[Lecturer Browser] --> D
+    C[Researcher Tools] --> D
+    D --> E[Route 53 DNS]
+    E --> F[AWS Security Group]
+    F --> G[EC2 Instance]
+
+    subgraph EC2[EC2 Instance]
+        H[Nginx Reverse Proxy] --> I[Django App Server]
+        I --> J[PostgreSQL Database]
+        K[pgAdmin] -.-> J
+        L[django-cron] -.-> I
+        M[Analytics Engine] -.-> I
+        I --> M
+    end
+
+    G --> H
+```
+
+## Full Stack Request Flow
+
+```mermaid
+flowchart LR
+    A[Next.js Frontend<br/>Vercel] -->|HTTPS API Calls| B[Internet]
+    B --> C[Route 53 DNS]
+    C --> D[AWS Security Group]
+    D --> E[Nginx Reverse Proxy<br/>EC2]
+    E --> F[Django REST API<br/>Docker Container]
+    F --> G[PostgreSQL<br/>Database]
+
+    H[Background Jobs<br/>django-cron] -.-> F
+    F -.-> I[Analytics Engine<br/>Kalman Filter]
+```
+
+### Nginx Responsibilities
+
+- Terminate HTTPS and enforce secure headers (HSTS, CSP).
+- Reverse proxy API traffic to `web` container on port `8000`.
+- Serve cached static files from `/var/www/luna/static/` for low latency.
+- Expose `/admin` and `/api` under the same domain for simplicity; consider subdomains when scaling.
+
+## Application Layer
+
+| Layer                 | Responsibilities                                                  | Key Components                   |
+| --------------------- | ----------------------------------------------------------------- | -------------------------------- |
+| **API Gateway**       | REST routing, serializers, authentication, permission enforcement | API endpoints, DRF views         |
+| **Domain Layer**      | User management, course modules, surveys, and forms               | Core business logic, data models |
+| **Modelling Layer**   | Kalman filter computations, analytics persistence, exports        | Statistical analysis engine      |
+| **Cron & Scheduling** | Periodic job orchestration for surveys and analytics              | Background job scheduler         |
+
+## Request Lifecycle Flow
+
+```mermaid
+sequenceDiagram
+    participant Student as Student
+    participant Nginx as Nginx Reverse Proxy
+    participant API as Django API
+    participant DB as PostgreSQL
+    participant Cron as Cron Runner
+    participant Model as Modelling Engine
+
+    Student->>Nginx: POST /api/modules/{id}/surveys
+    Nginx->>API: Forward request
+    API->>DB: Create survey record (status=ACTIVE)
+    API-->>Student: 201 Created + survey metadata
+
+    Cron->>API: Trigger weekly survey generation job
+    API->>DB: Insert new survey records
+    Cron->>Model: Invoke modelling task
+    Model->>DB: Update results with smoothed metrics
+    Model-->>API: Model status reported for dashboards
+```
+
+## Data Model Overview
+
+### Entity Relationship Diagram
+
+```mermaid
+erDiagram
+    User ||--o{ Student : "extends as"
+    User ||--o{ Module : "owns/teaches"
+    University ||--|{ Module : "offers"
+    University ||--|{ Faculty : "contains"
+    Module ||--o{ Enrollment : "has"
+    Student ||--o{ Enrollment : "participates in"
+    Module ||--o{ Survey : "generates"
+    Student ||--o{ Survey : "completes"
+    Form ||--o{ FormResponse : "collects"
+    Student ||--o{ FormResponse : "submits"
+
+    User {
+        string email
+        string role
+        string university
+    }
+
+    Student {
+        string demographics
+        string language
+        string background
+    }
+
+    Module {
+        string name
+        string code
+        string semester
+        date schedule
+        string status
+    }
+
+    Enrollment {
+        date enrolled_date
+        string status
+    }
+
+    Survey {
+        int sequence_number
+        json responses
+        string completion_status
+        date submitted_at
+    }
+
+    Form {
+        string name
+        json structure
+    }
+
+    FormResponse {
+        json answers
+        date submitted_at
+        string status
+    }
+```
+
+### Core Entities
+
+**University**
+
+- Represents educational institutions
+- Contains multiple faculties and departments
+- Supports multi-tenant platform architecture
+
+**User**
+
+- Email-based authentication system
+- Three roles: Student, Lecturer, Administrator
+- Linked to university affiliation
+
+**Student**
+
+- Extended user profile for student participants
+- Stores demographic and academic background
+- Tracks language preferences and financial support
+
+**Module (Course)**
+
+- Represents academic courses/subjects
+- Configurable semester periods (Winter/Summer)
+- Password-protected enrollment system
+- Scheduled survey deployment days
+- Active/Inactive status management
+
+**Enrollment**
+
+- Links students to their enrolled courses
+- Prevents duplicate enrollments
+- Tracks enrollment timeline
+
+**Survey**
+
+- Time-series survey instances for longitudinal data collection
+- Auto-incremented sequence numbers per student
+- Flexible JSON structure for diverse question types
+- Completion tracking (Completed/Not Completed)
+- Lifecycle status (Active/Archived)
+
+**Form Template**
+
+- Reusable questionnaire blueprints
+- JSON-based flexible structure
+- Created by lecturers and administrators
+
+**Form Response**
+
+- Student submissions to forms
+- Tracks completion status and timestamps
+- JSON storage for answers
+
+**Faculty**
+
+- Organizational units within universities
+- Groups related departments and programs
+
+## Technology Stack
+
+### Backend Framework
+
+- **Django 4.2.5** - Model-View-Template architecture
+- **Django REST Framework 3.14.0** - RESTful API design
+- **Custom authentication** - Email-based user system
+
+### Database
+
+- **PostgreSQL** - ACID-compliant relational storage
+- **JSON fields** - Flexible survey and form content
+- **Database adapter** - psycopg2-binary
+
+### API & Documentation
+
+- **OpenAPI/Swagger** - Interactive API documentation (drf-yasg)
+- **CORS support** - Cross-origin resource sharing (django-cors-headers)
+
+### Task Scheduling
+
+- **django-cron** - Periodic job execution
+- **Survey automation** - Scheduled deployment system
+
+### Configuration & Deployment
+
+- **Environment management** - python-decouple, python-dotenv
+- **Containerization** - Docker, Docker Compose
+- **Web server** - Nginx (reverse proxy, SSL termination)
+
+### Cloud Infrastructure
+
+- **Compute** - AWS EC2 instances
+- **Deployment** - Dockerized application on EC2
+- **Networking** - Nginx reverse proxy with SSL/TLS
+
+## Deployment Architecture
+
+```mermaid
+flowchart LR
+    A[Internet] --> B[Route 53 DNS]
+    B --> C[AWS Security Group]
+    C --> D[EC2 Instance]
+
+    subgraph EC2 Instance
+        E[Nginx<br/>SSL/TLS] --> F[Luna App<br/>Django]
+        F <--> G[PostgreSQL<br/>Database]
+    end
+
+    D --> E
+```
+
+## Background Processing
+
+1. **Survey Generation** - Runs twice daily; creates upcoming survey records based on module schedule and student enrollment.
+2. **Analytics Pipeline** - Ingests completed surveys, executes Kalman smoothing, writes metrics to analytics tables for dashboards.
+
+## Security Architecture
+
+### Authentication & Authorization
+
+- Email-based authentication (no username required)
+- Secure password hashing using Django's PBKDF2 algorithm
+- Role-based access control (Student, Lecturer, Administrator)
+- Session-based authentication framework
+
+### Data Protection
+
+- Environment-based configuration (no hardcoded secrets)
+- CORS policy enforcement for API security
+- SQL injection prevention via ORM parameterization
+- XSS protection through template auto-escaping
+
+### Infrastructure Security
+
+- Container isolation and separation
+- Docker bridge network segmentation
+- HTTPS/TLS encryption in production (Nginx)
+- Database access restricted to internal network
+
+## Related Documentation
+
+- [Overview](./overview.md) - Platform introduction and research context
+- [Installation Guide](./installation.md) - Environment setup instructions
+- [Student Experience](./student-experience.md) - Student user workflows
+- [Lecturer Experience](./lecturer-experience.md) - Lecturer and researcher workflows
