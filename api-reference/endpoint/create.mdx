@@ -1,4 +1,10 @@
 ---
-title: 'Create Plant'
-openapi: 'POST /plants'
+title: 'Run Kalman Filter'
+openapi: 'POST /{account_id}/kalman'
 ---
+
+<Note>
+  Submit one or more time series to Luna's Kalman filter. Set `save` to `true`
+  and include a `unique_identifier` to accumulate historical observations across
+  requests.
+</Note>

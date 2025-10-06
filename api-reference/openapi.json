@@ -1,216 +1,356 @@
 {
-  "openapi": "3.1.0",
+  "openapi": "3.0.3",
   "info": {
-    "title": "OpenAPI Plant Store",
-    "description": "A sample API that uses a plant store as an example to demonstrate features in the OpenAPI specification",
-    "license": {
-      "name": "MIT"
-    },
+    "title": "Luna Modelling API",
+    "description": "API for advanced data modeling and filtering services.\n\n## Getting Started\n\nTo use this API, you need:\n1. **API Key**: Contact us to obtain your unique API key and quota allocation\n2. **Account ID**: Provided along with your API key\n\n### Contact Us\n- Email: support@luna-modelling.com\n- Website: https://luna-modelling.com/contact\n\nOnce you have your API key, include it in the `X-API-Key` header with every request.\n",
     "version": "1.0.0"
   },
   "servers": [
     {
-      "url": "http://sandbox.mintlify.com"
+      "url": "https://api.luna-modelling.com/v1",
+      "description": "Production server"
+    },
+    {
+      "url": "http://localhost:8000/v1",
+      "description": "Development server"
     }
   ],
+  "components": {
+    "securitySchemes": {
+      "ApiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-API-Key",
+        "description": "API key for authentication"
+      }
+    },
+    "schemas": {
+      "KalmanInput": {
+        "type": "object",
+        "required": [
+          "results"
+        ],
+        "properties": {
+          "results": {
+            "type": "array",
+            "description": "A 2D array where each inner list contains time series values",
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "number",
+                "format": "float"
+              }
+            },
+            "example": [
+              [
+                10.2,
+                10.5,
+                10.1,
+                9.8,
+                10.3
+              ]
+            ]
+          },
+          "save": {
+            "type": "boolean",
+            "default": false,
+            "description": "Whether to save the results to the database"
+          },
+          "unique_identifier": {
+            "type": "string",
+            "nullable": true,
+            "description": "The unique identifier for the data (required when save is true)",
+            "example": "sensor-001-2024"
+          }
+        }
+      },
+      "KalmanOutput": {
+        "type": "object",
+        "properties": {
+          "filtered_data": {
+            "type": "array",
+            "description": "The filtered time series values after applying the Kalman filter",
+            "items": {
+              "type": "number",
+              "format": "float"
+            }
+          },
+          "raw_state": {
+            "type": "array",
+            "description": "The raw state values from the Kalman filter",
+            "items": {
+              "type": "number",
+              "format": "float"
+            }
+          },
+          "smooth_state": {
+            "type": "array",
+            "description": "The smoothed state values from the Kalman filter",
+            "items": {
+              "type": "number",
+              "format": "float"
+            }
+          },
+          "input_data": {
+            "type": "array",
+            "description": "The original input data",
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "number",
+                "format": "float"
+              }
+            }
+          }
+        }
+      },
+      "QuotaResponse": {
+        "type": "object",
+        "properties": {
+          "account_id": {
+            "type": "integer",
+            "description": "The account ID"
+          },
+          "account_name": {
+            "type": "string",
+            "description": "The account name"
+          },
+          "quota_remaining": {
+            "type": "integer",
+            "description": "Number of API calls remaining in your quota"
+          }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "detail": {
+            "type": "string",
+            "description": "Error message"
+          }
+        }
+      }
+    }
+  },
   "security": [
     {
-      "bearerAuth": []
+      "ApiKeyAuth": []
     }
   ],
   "paths": {
-    "/plants": {
+    "/account/quota": {
       "get": {
-        "description": "Returns all plants from the system that the user has access to",
-        "parameters": [
-          {
-            "name": "limit",
-            "in": "query",
-            "description": "The maximum number of results to return",
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
-          }
+        "tags": [
+          "Account"
         ],
+        "summary": "Get remaining quota",
+        "description": "Returns the remaining API call quota for your account.\nUse this endpoint to monitor your usage and plan accordingly.\n",
+        "operationId": "getQuota",
         "responses": {
           "200": {
-            "description": "Plant response",
+            "description": "Successfully retrieved quota information",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Plant"
+                  "$ref": "#/components/schemas/QuotaResponse"
+                },
+                "example": {
+                  "account_id": 123,
+                  "account_name": "acme-corp",
+                  "quota_remaining": 9850
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Invalid or missing API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "detail": "Invalid API key"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/{account_id}/kalman": {
+      "post": {
+        "tags": [
+          "Kalman Filter"
+        ],
+        "summary": "Apply Kalman filtering to time series data",
+        "description": "Processes time series data using a Kalman filter to reduce noise and provide\nsmoothed predictions. Optionally saves results to the database with a unique identifier.\n",
+        "operationId": "kalmanFilter",
+        "parameters": [
+          {
+            "name": "account_id",
+            "in": "path",
+            "required": true,
+            "description": "The account ID associated with your API key",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KalmanInput"
+              },
+              "examples": {
+                "basic": {
+                  "summary": "Basic filtering without saving",
+                  "value": {
+                    "results": [
+                      [
+                        10.2,
+                        10.5,
+                        10.1,
+                        9.8,
+                        10.3
+                      ]
+                    ],
+                    "save": false
+                  }
+                },
+                "with_save": {
+                  "summary": "Filter and save to database",
+                  "value": {
+                    "results": [
+                      [
+                        10.2,
+                        10.5,
+                        10.1,
+                        9.8,
+                        10.3,
+                        10.0,
+                        9.9,
+                        10.4
+                      ]
+                    ],
+                    "save": true,
+                    "unique_identifier": "sensor-001-2024"
                   }
                 }
               }
             }
-          },
-          "400": {
-            "description": "Unexpected error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        }
-      },
-      "post": {
-        "description": "Creates a new plant in the store",
-        "requestBody": {
-          "description": "Plant to add to the store",
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/NewPlant"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "plant response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Plant"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "unexpected error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/plants/{id}": {
-      "delete": {
-        "description": "Deletes a single plant based on the ID supplied",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "description": "ID of plant to delete",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Plant deleted",
-            "content": {}
-          },
-          "400": {
-            "description": "unexpected error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  },
-  "webhooks": {
-    "/plant/webhook": {
-      "post": {
-        "description": "Information about a new plant added to the store",
-        "requestBody": {
-          "description": "Plant added to the store",
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/NewPlant"
-              }
-            }
           }
         },
         "responses": {
           "200": {
-            "description": "Return a 200 status to indicate that the data was received successfully"
-          }
-        }
-      }
-    }
-  },
-  "components": {
-    "schemas": {
-      "Plant": {
-        "required": [
-          "name"
-        ],
-        "type": "object",
-        "properties": {
-          "name": {
-            "description": "The name of the plant",
-            "type": "string"
+            "description": "Successfully processed the Kalman filter",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KalmanOutput"
+                },
+                "example": {
+                  "filtered_data": [
+                    10.2,
+                    10.35,
+                    10.25,
+                    10.02,
+                    10.15,
+                    10.08,
+                    10.01,
+                    10.22
+                  ],
+                  "raw_state": [
+                    10.2,
+                    10.35,
+                    10.25,
+                    10.02,
+                    10.15,
+                    10.08,
+                    10.01,
+                    10.22
+                  ],
+                  "smooth_state": [
+                    10.2,
+                    10.33,
+                    10.27,
+                    10.05,
+                    10.13,
+                    10.09,
+                    10.03,
+                    10.2
+                  ],
+                  "input_data": [
+                    [
+                      10.2,
+                      10.5,
+                      10.1,
+                      9.8,
+                      10.3,
+                      10.0,
+                      9.9,
+                      10.4
+                    ]
+                  ]
+                }
+              }
+            }
           },
-          "tag": {
-            "description": "Tag to specify the type",
-            "type": "string"
-          }
-        }
-      },
-      "NewPlant": {
-        "allOf": [
-          {
-            "$ref": "#/components/schemas/Plant"
+          "400": {
+            "description": "Bad request - Invalid input data or missing required fields",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "detail": "unique_identifier is required when save is True"
+                }
+              }
+            }
           },
-          {
-            "required": [
-              "id"
-            ],
-            "type": "object",
-            "properties": {
-              "id": {
-                "description": "Identification number of the plant",
-                "type": "integer",
-                "format": "int64"
+          "404": {
+            "description": "Account not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "detail": "Account not found."
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Quota exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "detail": "Quota exceeded. Please upgrade your plan."
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "detail": "An unexpected error occurred"
+                }
               }
             }
           }
-        ]
-      },
-      "Error": {
-        "required": [
-          "error",
-          "message"
-        ],
-        "type": "object",
-        "properties": {
-          "error": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "message": {
-            "type": "string"
-          }
         }
-      }
-    },
-    "securitySchemes": {
-      "bearerAuth": {
-        "type": "http",
-        "scheme": "bearer"
       }
     }
   }

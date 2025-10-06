@@ -1,29 +1,67 @@
 ---
-title: "Introduction"
-description: "Example section for showcasing API endpoints"
+title: "API Reference"
+description: "Interactive documentation for the Luna Modelling API."
 ---
 
+## Welcome to the Luna Modelling API
+
+The Luna Modelling API provides advanced statistical modeling and filtering services designed for educational research and student performance analysis. Built with robust quota management and persistent data storage, our API enables researchers and institutions to process time series data efficiently.
+
 <Note>
-  If you're not looking to build API reference documentation, you can delete
-  this section by removing the api-reference folder.
+  Explore the endpoints below using the live OpenAPI-powered playground.
+  Switch between request examples to understand stateless and stateful Kalman
+  filter runs.
 </Note>
 
-## 
+## Getting Started
 
-There are two ways to build API documentation: [OpenAPI](https://mintlify.com/docs/api-playground/openapi/setup) and [MDX components](https://mintlify.com/docs/api-playground/mdx/configuration). For the starter kit, we are using the following OpenAPI specification.
+To start using the Luna Modelling API:
 
-<Card title="Plant Store Endpoints" icon="leaf" href="https://github.com/mintlify/starter/blob/main/api-reference/openapi.json">
-  View the OpenAPI specification file
+1. **Contact us** to obtain your API key and account ID
+2. **Include your API key** in the `X-API-Key` header with every request
+3. **Monitor your quota** using the `/account/quota` endpoint
+4. **Process your data** with our Kalman filtering service
+
+### Base URL
+
+```
+Production: https://api.luna-modelling.com/v1
+Development: http://localhost:8000/v1
+```
+
+## Specification
+
+<Card title="Luna Modelling API" icon="code" href="/api-reference/openapi.json">
+  Download the OpenAPI specification that powers this reference.
 </Card>
 
 ## Authentication
 
-All API endpoints are authenticated using Bearer tokens and picked up from the specification file.
+All endpoints require an API key via the `X-API-Key` header. The server uses the
+key to validate access, enforce quotas, and bind the request to the supplied
+`account_id` path parameter when relevant.
 
-```json
-"security": [
-  {
-    "bearerAuth": []
-  }
-]
+```http
+X-API-Key: <your-api-key>
 ```
+
+## Available Endpoints
+
+### Account Management
+
+- **`GET /account/quota`** - Check your remaining quota before issuing modelling requests. Use this to monitor usage and plan your API calls accordingly.
+
+### Data Processing
+
+- **`POST /{account_id}/kalman`** - Run Kalman filtering on one or more time series, with optional persistence. The Rauch-Tung-Striebel smoother reduces noise and provides smoothed predictions for student performance data.
+
+## Use Cases
+
+The Luna Modelling API is designed for:
+
+- **Student Performance Prediction** - Filter noisy grade data to identify true performance trends
+- **Early Warning Systems** - Detect students at risk of dropout through statistical analysis
+- **Longitudinal Studies** - Accumulate and analyze student data over multiple semesters
+- **Research Projects** - Process educational data with state-of-the-art filtering techniques
+
+Use the sidebar to jump straight into interactive examples for each endpoint.

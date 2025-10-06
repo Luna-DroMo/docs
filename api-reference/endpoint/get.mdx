@@ -1,4 +1,10 @@
 ---
-title: 'Get Plants'
-openapi: 'GET /plants'
+title: 'Check Account Quota'
+openapi: 'GET /account/quota'
 ---
+
+<Note>
+  Returns the remaining quota units allotted to your account. Poll this endpoint
+  before launching long-running modelling jobs to make sure you stay within
+  limits.
+</Note>
