@@ -8,8 +8,8 @@
         "dark": "#333333"
     },
     "favicon": "/favicon.ico",
-    "icons":{
-    "library":"lucide"
+    "icons": {
+        "library": "lucide"
     },
     "navigation": {
         "tabs": [
@@ -46,7 +46,7 @@
                         "pages": [
                             "modelling-api/overview",
                             "modelling-api/models",
-                            "modelling-api/api.yaml"
+                            "modelling-api/endpoint"
                         ]
                     },
                     {
@@ -71,7 +71,6 @@
                         "pages": [
                             "api-reference/endpoint/get",
                             "api-reference/endpoint/create"
-
                         ]
                     }
                 ]
