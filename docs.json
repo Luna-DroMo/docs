@@ -35,10 +35,10 @@
                         "group": "Student Dropout Platform",
                         "pages": [
                             "web-platform/overview",
-                            "web-platform/installation",
-                            "web-platform/architecture",
                             "web-platform/student-view",
-                            "web-platform/lecturer-view"
+                            "web-platform/lecturer-view",   
+                            "web-platform/installation",
+                            "web-platform/architecture"
                         ]
                     },
                     {
