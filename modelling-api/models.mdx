@@ -198,9 +198,9 @@ The filter uses the following matrices (defined in `modelling/constants.py`):
 
 ## Use Cases
 
-### Use Case 1: Real-Time Sensor Filtering
+### Use Case 1: Student Dropout Prediction on Premise
 
-**Scenario**: Filter noisy sensor data in real-time without storing history.
+**Scenario**: Connect your student portal programmatically to predict student dropout prediction.
 
 ```bash
 curl -X POST "http://localhost:8000/api/v1/1/kalman" \
@@ -222,7 +222,7 @@ curl -X POST "http://localhost:8000/api/v1/1/kalman" \
 {
   "results": [[10.2, 10.5, 10.1, 9.8, 10.3]],
   "save": true,
-  "unique_identifier": "user-123-sensor"
+  "unique_identifier": "user-survey-1"
 }
 ```
 
@@ -232,7 +232,7 @@ curl -X POST "http://localhost:8000/api/v1/1/kalman" \
 {
   "results": [[10.0, 9.9, 10.4, 10.2, 10.1]],
   "save": true,
-  "unique_identifier": "user-123-sensor"
+  "unique_identifier": "user-survey-1"
 }
 ```
 
