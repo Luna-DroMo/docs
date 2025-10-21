@@ -191,150 +191,44 @@ Survey Marked as COMPLETED
 
 ---
 
-## Use Case Examples
-
-### Use Case 1: New Student Enrollment
-
-**Actor**: First-year mathematics student
-
-**Steps**:
-
-1. Receive welcome email with platform link
-2. Create account with university email
-3. Fill in demographic information (birth date, Abitur grade, language)
-4. Receive module password from mathematics lecturer
-5. Navigate to "Enroll in Module" section
-6. Enter module code and password
-7. Successfully enrolled in "Mathematics I - Winter Semester"
-
-**Outcome**: Student is now enrolled and will receive surveys on configured days
-
----
-
-### Use Case 2: Completing Weekly Survey
-
-**Actor**: Enrolled student
-
-**Steps**:
-
-1. Receive notification on Monday (survey day)
-2. Login to platform
-3. See "1 Pending Survey" on dashboard
-4. Click on survey for "Mathematics I"
-5. Answer questions about:
-   - Current emotional state
-   - Study hours this week
-   - Difficulty level of material
-   - Confidence in understanding
-6. Click "Submit Survey"
-7. Receive confirmation message
-
-**Outcome**: Survey marked as completed, data stored in StudentSurvey JSON content
-
----
-
-### Use Case 3: Tracking Progress
-
-**Actor**: Student mid-semester
-
-**Steps**:
-
-1. Navigate to "My Modules" section
-2. Select "Mathematics I" module
-3. View survey history:
-   - Survey #1 (Week 1): Completed ✓
-   - Survey #2 (Week 2): Completed ✓
-   - Survey #3 (Week 3): Not Completed ✗
-   - Survey #4 (Week 4): Completed ✓
-4. See completion rate: 75% (3/4 surveys)
-5. Review submission dates and times
-
-**Outcome**: Student aware of participation status and can plan accordingly
-
----
-
-### Use Case 4: Managing Multiple Modules
-
-**Actor**: Student enrolled in multiple courses
-
-**Steps**:
-
-1. Enrolled in:
-   - Mathematics I (Mondays & Thursdays)
-   - Statistics (Wednesdays)
-   - Linear Algebra (Fridays)
-2. Dashboard shows separate survey counters per module
-3. Complete surveys for each module on respective days
-4. Track progress independently for each course
-
-**Outcome**: Organized participation across multiple modules
-
----
-
-### Use Case 5: Updating Profile Information
-
-**Actor**: Returning student
-
-**Steps**:
-
-1. Navigate to profile settings
-2. Update financial support status (received scholarship)
-3. Update preferred language setting
-4. Add nickname for informal communications
-5. Save changes
-
-**Outcome**: Profile updated, information available for research analysis
-
----
-
 ## Student Capabilities Summary
 
 ### What Students Can Do:
 
-✅ **Account & Profile**
+**Account & Profile**
 
 - Create and verify account
 - Manage personal information
 - Update profile details
 - Change credentials
 
-✅ **Module Management**
+**Module Management**
 
 - Browse available modules
 - Enroll with password
 - View enrolled modules
 - Access module details
 
-✅ **Survey Interaction**
+**Survey Interaction**
 
 - Receive scheduled surveys
 - Fill out survey forms
 - Submit responses
 - Track completion status
 
-✅ **Data Viewing**
+**Data Viewing**
 
 - View survey history
 - See completion rates
 - Track participation
 - Monitor progress
 
-✅ **Dashboard**
+**Dashboard**
 
 - Access centralized dashboard
 - View pending tasks
 - Navigate modules
 - See notifications
-
-### What Students Cannot Do:
-
-❌ Create or modify modules
-❌ Access other students' data
-❌ Change survey schedules
-❌ Delete submitted surveys
-❌ View aggregated analytics
-❌ Manage lecturer functions
-❌ Access admin features
 
 ---
 
